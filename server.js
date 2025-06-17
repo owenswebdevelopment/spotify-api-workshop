@@ -57,18 +57,38 @@ app.get("/callback", async (req, res) => {
     res.redirect("/dashboard");
   });
 
-app.get("/dashboard", async (req, res) => {
-  const response = await fetch("https://api.spotify.com/v1/me", {
+
+async function getData(endpoint) {
+  const response = await fetch("https://api.spotify.com/v1" + endpoint, {
     method: "get",
     headers: {
       Authorization: "Bearer " + global.access_token
     }
   });
   const data =  await response.json();
-  console.log(data)
+  return data
+}
+  app.get("/dashboard", async (req, res) => {
+    const userInfo = await getData("/me");
+    const tracks = await getData("/me/tracks?limt=10");
 
-  res.render("dashboard", {user: data});
+
+    console.log("userInfo:", userInfo);
+    console.log("tracks:", tracks);
+
+    let firstName = "user"
+    if(userInfo.display_name){
+    firstName = userInfo.display_name.split(" ")[0] || display_name || "user";
+  }
+
+  res.render("dashboard", {
+  user: userInfo,       // this keeps user.display_name, user.images, etc.
+  tracks: tracks.items, // this passes the user's saved tracks
+  firstName: firstName
 });
+
+});
+
 
 // async function getData(endpoint) {
 //   const response = await fetch("https://api.spotify.com/v1" + endpoint, {
