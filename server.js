@@ -24,6 +24,7 @@ app.get("/authorize", (req, res) => {
     client_id: client_id,
     scope: "user-library-read",
     redirect_uri: redirect_uri,
+    show_dialog: "true"
   });
 
   res.redirect(
@@ -39,7 +40,7 @@ app.get("/callback", async (req, res) => {
     redirect_uri: redirect_uri,
     grant_type: "authorization_code"
   });
-  console.log("redirect_uri:", redirect_uri);
+  // console.log("redirect_uri:", redirect_uri);
 
   const response =  await fetch("https://accounts.spotify.com/api/token", {
     method: "post",
@@ -53,7 +54,7 @@ app.get("/callback", async (req, res) => {
 })
     const data = await response.json();
     global.access_token = data.access_token;
-    console.log(data);
+    // console.log(data);
     res.redirect("/dashboard");
   });
 
@@ -65,16 +66,25 @@ async function getData(endpoint) {
       Authorization: "Bearer " + global.access_token
     }
   });
+
+  // console.log(`Fetching: https://api.spotify.com/v1${endpoint}`);
+  // console.log("Response Status:", response.status, response.statusText);
+
+  if(!response.ok){
+    const text = await response.text();
+    console.error(`Error from Spotify API: ${response.status}`, text)
+    return {};
+  }
+
   const data =  await response.json();
   return data
 }
   app.get("/dashboard", async (req, res) => {
     const userInfo = await getData("/me");
-    const tracks = await getData("/me/tracks?limt=10");
+    const tracks = await getData("/me/tracks?limit=10");
 
-
-    console.log("userInfo:", userInfo);
-    console.log("tracks:", tracks);
+    // console.log("userInfo:", userInfo);
+    // console.log("tracks:", tracks);
 
     let firstName = "user"
     if(userInfo.display_name){
@@ -90,38 +100,34 @@ async function getData(endpoint) {
 });
 
 
-// async function getData(endpoint) {
-//   const response = await fetch("https://api.spotify.com/v1" + endpoint, {
-//     method: "get",
-//     headers: {
-//       Authorization: "Bearer " + global.access_token,
-//     },
-//   });
+app.get("/recommendations", async (req, res) => {
+  const artist_id = req.query.artist;
+  const track_id = req.query.track;
 
-//   const data = await response.json();
-//   return data;
-// }
+  const params = new URLSearchParams({
+    seed_artists: artist_id,
+    seed_tracks: track_id,
+    seed_genres: "pop",
+  });
 
-// app.get("/dashboard", async (req, res) => {
-//   const userInfo = await getData("/me");
-//   const tracks = await getData("/me/tracks?limit=10");
+  const data = await fetch("https://api.spotify.com/v1/recommendations?" + params, {
+      headers: {
+      Authorization: "Bearer " + global.access_token
+    }
+  });
+  // const data = await response.json();
+  console.log("RECOMMENDATIONS:", data);
+  // console.log("Artist ID:", artist_id);
+  // console.log("Track ID:", track_id);
 
-//   res.render("dashboard", { user: userInfo, tracks: tracks.items });
-// });
+  // console.log("getData:", data)
 
-// app.get("/recommendations", async (req, res) => {
-//   const artist_id = req.query.artist;
-//   const track_id = req.query.track;
+  res.render("recommendation", { tracks: data.tracks || [] });
 
-//   const params = new URLSearchParams({
-//     seed_artist: artist_id,
-//     seed_genres: "rock",
-//     seed_tracks: track_id,
-//   });
+});
 
-//   const data = await getData("/recommendations?" + params);
-//   res.render("recommendation", { tracks: data.tracks });
-// });
+
+
 
 let listener = app.listen(3000, function () {
   console.log(

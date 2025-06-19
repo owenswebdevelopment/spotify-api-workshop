@@ -1,15 +1,13 @@
-extends layout.pug
-    
 block content
-    h1 Recommendations
+  h1 Recommended Tracks 🎧
 
-    table 
+  if tracks.length
+    table
       each t in tracks
-        tr 
-          - var artist_name = t.artists[0].name
-          - var track_name = t.name
-          - var track_preview = t.preview_url
-
+        tr
+          td #{t.name}
+          - var artist_name = (t.artists && t.artists.length > 0) ? t.artists[0].name : "Unknown Artist"
           td #{artist_name}
-          td #{track_name}
-          td: a(href=track_preview) Preview
+          td: a(href=t.preview_url || "#", target="_blank") Preview
+  else
+    p Sorry, no recommendations available right now.
